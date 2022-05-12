@@ -164,7 +164,7 @@ PixelShader =
 		File = "gfx/map/environment/SkyBox.dds"
 		srgb = yes
 	}
-	# MOD(map-skybox)
+	# END MOD
 }
 
 VertexStruct VS_OUTPUT
