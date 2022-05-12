@@ -2037,7 +2037,7 @@ Effect sine_flag_animation
 
 
 # MOD(court-skybox)
-Effect SKBX_court_sky
+Effect SKYX_court_sky
 {
 	VertexShader = "VS_standard"
 	PixelShader = "PS_SKYX_court_sky"
