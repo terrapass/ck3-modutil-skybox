@@ -4,6 +4,8 @@ _(a Crusader Kings III modding utility)_
 
 This repository contains CK3 mod files which implement sky rendering on the map.
 
+![Animated GIF with camera rotating around and showing sky above the terrain](https://media.githubusercontent.com/media/terrapass/ck3-modutil-skybox/master/docs/skybox_demo.gif)
+
 You can integrate this feature into your own mod by copying the files into your mod's file structure and making adjustments if necessary (see [Integrating into Your Mod](#integration)).
 Alternatively, you can load the contents of this repo as a separate mod in your playset, which might be useful if you just want to take several beauty shots of the map, `mod/descriptor.mod` is provided for this purpose.
 
@@ -68,7 +70,9 @@ So, for example, if your map dimensions are `10000x20000`, set your `ZFAR` to `3
 
 This is needed so that the skybox mesh is not clipped by the camera's far clipping plane when rendering,
 otherwise you'll see a black artifact when looking from one corner of the map at the opposite one.
+
 So if you see something like this, it's probably due to your `ZFAR` being too small.
+![Example of an artifact caused by low ZFAR setting](https://media.githubusercontent.com/media/terrapass/ck3-modutil-skybox/master/docs/zfar_artifact_example.png)
 
 Under the Hood<a name="under-the-hood"></a>
 --------------
