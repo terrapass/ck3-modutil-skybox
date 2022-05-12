@@ -150,6 +150,21 @@ PixelShader =
 		SampleModeU = "Wrap"
 		SampleModeV = "Wrap"
 	}
+
+	# MOD(map-skybox)
+	TextureSampler SkyboxSample
+	{
+		Index = 12
+		MagFilter = "Linear"
+		MinFilter = "Linear"
+		MipFilter = "Linear"
+		SampleModeU = "Clamp"
+		SampleModeV = "Clamp"
+		Type = "Cube"
+		File = "gfx/map/environment/SkyBox.dds"
+		srgb = yes
+	}
+	# MOD(map-skybox)
 }
 
 VertexStruct VS_OUTPUT
@@ -369,7 +384,7 @@ PixelShader =
 			PDX_MAIN
 			{
 				float3 FromCameraDir = normalize(Input.WorldSpacePos - CameraPosition);
-				float4 CubemapSample = PdxTexCube(EnvironmentMap, FromCameraDir);
+				float4 CubemapSample = PdxTexCube(SkyboxSample, FromCameraDir);
 
 				return CubemapSample;
 			}
@@ -388,7 +403,7 @@ PixelShader =
 			{
 				float3 Direction = -normalize(CameraPosition - Input.WorldSpacePos);
 
-				float4 CubemapSample = PdxTexCube( EnvironmentMap, Direction );
+				float4 CubemapSample = PdxTexCube( SkyboxSample, Direction );
 
 				//return CubemapSample;
 				return float4( 0.0, 1.0, 1.0, 1.0 );

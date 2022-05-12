@@ -393,16 +393,6 @@ DepthStencilState DepthStencilState
 {
 	DepthEnable = yes
 	DepthWriteEnable = no
-	//DepthFunction = "GREATER_EQUAL"
-
-	//DepthEnable = yes
-	//StencilEnable = yes
-	//FrontStencilFunc = "ALWAYS"
-	//StencilRef = 1
-
-	//StencilEnable = yes
-	//FrontStencilPassOp = replace
-	//StencilRef = 1
 }
 
 RasterizerState RasterizerState
