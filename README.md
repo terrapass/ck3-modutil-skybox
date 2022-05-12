@@ -7,6 +7,13 @@ This repository contains CK3 mod files which implement sky rendering on the map.
 You can integrate this feature into your own mod by copying the files into your mod's file structure and making adjustments if necessary (see [Integrating into Your Mod](#integration)).
 Alternatively, you can load the contents of this repo as a separate mod in your playset, which might be useful if you just want to take several beauty shots of the map, `mod/descriptor.mod` is provided for this purpose.
 
+Table of Contents
+-----------------
+1. <a href="#description">Description</a>
+2. <a href="#integration">Integrating into Your Mod</a>
+3. <a href="#large-maps">Tweaks for Larger Maps</a>
+4. <a href="#under-the-hood">Under the Hood</a>
+
 Description<a name="description"></a>
 -----------
 The sky is rendered via a skybox - a 6-sided box mesh with normals pointing inwards, which is placed as an object on the map,
@@ -29,7 +36,7 @@ Additionally, `MOD(court-skybox)` comments in `court_scene.shader` mark changes 
 
 3. Copy `gfx/map/environment/SkyBox.dds` from this repo, if you want to use the sky texture it provides.
 
-Alternatively, you can either take one of the cubemap images included in vanilla game (from vanilla `gfx/map/environment` or `gfx/portraits/environments` folders),
+<a name="integration.custom-skybox"></a>Alternatively, you can either take one of the cubemap images included in vanilla game (from vanilla `gfx/map/environment` or `gfx/portraits/environments` folders),
 or create your own skybox image and save it as `gfx/map/environment/SkyBox.dds`.
 
 If going the latter route, make sure that your custom `SkyBox.dds` is using `BC1/DX1` format and is saved as a cubemap ("Cube&nbsp;Map&nbsp;from&nbsp;crossed&nbsp;image" in Paint.NET)
@@ -62,3 +69,20 @@ So, for example, if your map dimensions are `10000x20000`, set your `ZFAR` to `3
 This is needed so that the skybox mesh is not clipped by the camera's far clipping plane when rendering,
 otherwise you'll see a black artifact when looking from one corner of the map at the opposite one.
 So if you see something like this, it's probably due to your `ZFAR` being too small.
+
+Under the Hood<a name="under-the-hood"></a>
+--------------
+
+Below is a short summary of the files included in this repo and the purpose they serve.
+
+* `gfx/models/mapitems/SKYX_skybox.mesh` - the actual skybox mesh - a cube with inverted normals, `2.0` units in each dimension, origin in the center.
+* `gfx/models/mapitems/SKYX_skybox.asset` - asset file defining `SKYX_skybox_mesh` based on the above mesh file and specifying `SKYX_sky` shader effect for it.
+* `gfx/map/environment/SkyBox.dds` - cubemap texture used for the sky, may be replaced by a custom one as described [above](#integration.custom-skybox).
+* `gfx/map/map_object_data/SKYX_skybox.txt` - map data file, placing a single instance of the `SKYX_skybox_mesh` in the middle of the map and scaling it to enclose the entire map; needs to be modified for larger-than-vanilla maps as described [above](#large-maps).
+* `gfx/FX` contains modified vanilla shader files, which introduce the following changes necessary to properly render the skybox.
+  * `pdxmesh.shader` - defines `SKYX_sky` shader effect used to render the map skybox using the cubemap texture in `SkyBox.dds`.
+  * `court_scene.shader` - defines `SKYX_court_sky` shader effect, which can be used to render skyboxes in court room scenes based on `cubemap` specified in their scene settings files.
+  * `pdxborder.shader` - prevents borders from being rendered through terrain.
+  * `surroundmap.shader` - prevents black line on the horizon from being rendered through terrain.
+  * `pdxwater.shader` - removes black spaces along map edges with no water to prevent them from ruining the sky effect.
+* `common/defines/graphic/SKYX_defines.txt` - changes camera-related defines to unlock map camera angles and moves far clipping plane further from the camera; needs to be modified for larger-than-vanilla maps as described [above](#large-maps).
