@@ -3,6 +3,7 @@ Map Skybox
 _(a Crusader Kings III modding utility)_
 
 This repository contains CK3 mod files which implement sky rendering on the map.
+<a name="demo"></a>
 
 ![Animated GIF with camera rotating around and showing sky above the terrain](https://media.githubusercontent.com/media/terrapass/ck3-modutil-skybox/master/docs/skybox_demo.gif)
 
@@ -36,7 +37,7 @@ For convenience, all the changes necessary for sky rendering are marked with `MO
 you can just search for this string and copy all pieces of code surrounded by this comment.
 Additionally, `MOD(court-skybox)` comments in `court_scene.shader` mark changes providing support for sky rendering in court room scene.
 
-3. Copy `gfx/map/environment/SkyBox.dds` from this repo, if you want to use the sky texture it provides.
+3. Copy `gfx/map/environment/SkyBox.dds` from this repo, if you want to use the sky texture it provides (can be seen in the [demo GIF](#demo)).
 
 <a name="integration.custom-skybox"></a>Alternatively, you can either take one of the cubemap images included in vanilla game (from vanilla `gfx/map/environment` or `gfx/portraits/environments` folders),
 or create your own skybox image and save it as `gfx/map/environment/SkyBox.dds`.
@@ -64,7 +65,7 @@ If you choose to use a text editor, you can do this by finding the line with `tr
 | `10000.0`       | your `WORLD_EXTENTS_X` plus `1000`    |
 | `5000.0`        | your `WORLD_EXTENTS_Z` plus `1000`    |
 
-2. Change `ZFAR` define in `common/defines/graphic/SKYX_defines.txt` (or your own defines file) to be about `1.5` bigger than the larger of your map's sides.
+2. Change `ZFAR` define in `common/defines/graphic/SKYX_defines.txt` (or your own defines file) to be about `1.5` times bigger than the larger of your map's sides.
 
 So, for example, if your map dimensions are `10000x20000`, set your `ZFAR` to `30000`.
 
