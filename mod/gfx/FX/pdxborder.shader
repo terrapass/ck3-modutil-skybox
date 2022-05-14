@@ -114,18 +114,22 @@ BlendState BlendState
 
 RasterizerState RasterizerState
 {
-	
+	# MOD(map-skybox)
 	DepthBias = -20000
 	SlopeScaleDepthBias = 0
+	# END MOD
 }
 
 DepthStencilState DepthStencilState
 {
-	
+	# MOD(map-skybox)
 	DepthEnable = yes
 	DepthWriteEnable = no
+	# END MOD
 	StencilEnable = yes
+	# MOD(map-skybox)
 	FrontStencilFunc = greater_equal
+	# END MOD
 	StencilRef = 1
 }
 

@@ -384,22 +384,27 @@ BlendState BlendState
 	BlendEnable = yes
 	SourceBlend = "src_alpha"
 	DestBlend = "inv_src_alpha"
+	# MOD(map-skybox)
 	BlendOp = "REV_SUBTRACT"
+	# END MOD
 	WriteMask = "RED|GREEN|BLUE"
-	
 }
 
 DepthStencilState DepthStencilState
 {
+	# MOD(map-skybox)
 	DepthEnable = yes
+	# END MOD
 	DepthWriteEnable = no
 }
 
 RasterizerState RasterizerState
 {
 	frontccw = yes
+	# MOD(map-skybox)
 	DepthBias = -20000
 	SlopeScaleDepthBias = 50
+	# END MOD
 }
 
 

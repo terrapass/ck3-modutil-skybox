@@ -33,8 +33,8 @@ Use the following steps to integrate map sky rendering into your mod.
 2. Copy all of the `.shader` files that don't yet exist in your mod from `gfx/FX`.
 If your mod already has some of these shader files, you'll need to manually merge in changes from this repo's versions of these files into yours.
 
-For convenience, all the changes necessary for sky rendering are marked with `MOD(map-skybox)` comments in `court_scene.shader`, `pdxwater.shader` and `pdxmesh.shader` files -
-you can just search for this string and copy all pieces of code surrounded by this comment.
+For convenience, all the changes necessary for map sky rendering are marked with `MOD(map-skybox)` comments in `.shader` files -
+you can just search for this string and copy/replace all pieces of code surrounded by this comment.
 Additionally, `MOD(court-skybox)` comments in `court_scene.shader` mark changes providing support for sky rendering in court room scene.
 
 3. Copy `gfx/map/environment/SkyBox.dds` from this repo, if you want to use the sky texture it provides (can be seen in the [demo GIF](#demo)).
