@@ -313,32 +313,6 @@ VertexShader =
 			}
 		]]
 	}
-
-	# MOD(map-skybox)
-	MainCode SKYX_VS_skyquad
-	{
-		Input = "VS_INPUT_PDXMESHSTANDARD"
-		Output = "VS_OUTPUT"
-		Code
-		[[
-			PDX_MAIN
-			{
-				// TODO: Calculate properly
-				// float3 CameraFarCenter      = CameraPosition + 0.99*ZFar*CameraLookAtDir;
-				// float3 CameraFarTopLeft     = CameraFarCenter + 500.0*CameraUpDir - 500.0*CameraRightDir;
-				// float3 CameraFarBottomRight = CameraFarCenter - 500.0*CameraUpDir + 500.0*CameraRightDir;
-
-				// Input.Position.x = lerp(CameraFarTopLeft.x, CameraFarBottomRight.x, Input.UV0.x);
-				// Input.Position.y = lerp(CameraFarTopLeft.y, CameraFarBottomRight.y, Input.UV0.y);
-
-				VS_OUTPUT Out = ConvertOutput( PdxMeshVertexShaderStandard( Input ) );
-				Out.InstanceIndex = Input.InstanceIndices.y;
-
-				return Out;
-			}
-		]]
-	}
-	# END MOD
 }
 
 PixelShader =
@@ -387,26 +361,6 @@ PixelShader =
 				float4 CubemapSample = PdxTexCube(SkyboxSample, FromCameraDir);
 
 				return CubemapSample;
-			}
-		]]
-	}
-	# END MOD
-
-	# MOD(map-skybox)
-	MainCode SKYX_PS_skyquad
-	{
-		Input = "VS_OUTPUT"
-		Output = "PDX_COLOR"
-		Code
-		[[
-			PDX_MAIN
-			{
-				float3 Direction = -normalize(CameraPosition - Input.WorldSpacePos);
-
-				float4 CubemapSample = PdxTexCube( SkyboxSample, Direction );
-
-				//return CubemapSample;
-				return float4( 0.0, 1.0, 1.0, 1.0 );
 			}
 		]]
 	}
