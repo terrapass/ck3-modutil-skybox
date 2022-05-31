@@ -1,6 +1,6 @@
 Includes = {
-	"cw/pdxmesh.fxh"
 	"cw/pdxmesh_blendshapes.fxh"
+	"cw/pdxmesh.fxh"
 	"cw/utility.fxh"
 	"cw/shadow.fxh"
 	"cw/camera.fxh"
@@ -127,26 +127,6 @@ VertexStruct VS_OUTPUT_PDXMESHPORTRAIT
 	uint 	InstanceIndex	: TEXCOORD6;
 };
 
-VertexStruct VS_INPUT_PDXMESHSTANDARD_ID
-{
-    float3 Position			: POSITION;
-	float3 Normal      		: TEXCOORD0;
-	float4 Tangent			: TEXCOORD1;
-	float2 UV0				: TEXCOORD2;
-@ifdef PDX_MESH_UV1     	
-	float2 UV1				: TEXCOORD3;
-@endif
-
-	uint2 InstanceIndices 	: TEXCOORD4;
-	
-@ifdef PDX_MESH_SKINNED
-	uint4 BoneIndex 		: TEXCOORD5;
-	float3 BoneWeight		: TEXCOORD6;
-@endif
-
-	uint VertexID			: PDX_VertexID;
-};
-
 # SCourtSceneLightConstants::MaxLightCount in cpp code controls light array sizes
 ConstantBuffer( SceneLightConstants )
 {
@@ -230,114 +210,6 @@ VertexShader = {
 			return Out;
 		}
 	]]
-	
-	MainCode VS_portrait_blend_shapes
-	{
-		Input = "VS_INPUT_PDXMESHSTANDARD_ID"
-		Output = "VS_OUTPUT_PDXMESHPORTRAIT"
-		Code
-		[[
-			PDX_MAIN
-			{
-			  	VS_OUTPUT_PDXMESHPORTRAIT Out;
-				
-				float4 vPosition = float4( Input.Position.xyz, 1.0f );
-				float3 vBlendPositionDiff;
-				float3 vBlendNormalDiff;
-				float3 vBlendTangentDiff;
-				ProcessBlendShapes( vBlendPositionDiff, vBlendNormalDiff, vBlendTangentDiff, Input.VertexID );
-				vPosition.xyz += vBlendPositionDiff;
-				
-				float4x4 WorldMatrix = PdxMeshGetWorldMatrix( Input.InstanceIndices.y );
-			#ifdef PDX_MESH_SKINNED
-				float4 vSkinnedPosition = float4( 0, 0, 0, 0 );
-				float3 vSkinnedNormal = float3( 0, 0, 0 );
-				float3 vSkinnedTangent = float3( 0, 0, 0 );
-				float3 vSkinnedBitangent = float3( 0, 0, 0 );
-			
-				float4 vWeight = float4( Input.BoneWeight.xyz, 1.0f - Input.BoneWeight.x - Input.BoneWeight.y - Input.BoneWeight.z );
-			
-				for( int i = 0; i < PDXMESH_MAX_INFLUENCE; ++i )
-			    {
-					int nIndex = int( Input.BoneIndex[i] );
-					float4x4 mat = BoneMatrices[nIndex + Input.InstanceIndices.x];
-					vSkinnedPosition += mul( mat, vPosition ) * vWeight[i];
-			
-					float3 vNormal = mul( CastTo3x3(mat), Input.Normal + vBlendNormalDiff );
-					float3 vTangent = mul( CastTo3x3(mat), Input.Tangent.xyz + vBlendTangentDiff );
-					float3 vBitangent = cross( vNormal, vTangent ) * Input.Tangent.w;
-			
-					vSkinnedNormal += vNormal * vWeight[i];
-					vSkinnedTangent += vTangent * vWeight[i];
-					vSkinnedBitangent += vBitangent * vWeight[i];
-				}
-			
-				Out.Position = mul( WorldMatrix, vSkinnedPosition );
-				
-				Out.Normal = normalize( mul( CastTo3x3(WorldMatrix), normalize( vSkinnedNormal ) ) );
-				Out.Tangent = normalize( mul( CastTo3x3(WorldMatrix), normalize( vSkinnedTangent ) ) );
-				Out.Bitangent = normalize( mul( CastTo3x3(WorldMatrix), normalize( vSkinnedBitangent ) ) );
-			#else
-				Out.Position = mul( WorldMatrix, vPosition );
-				
-				Out.Normal = normalize( mul( CastTo3x3( WorldMatrix ), Input.Normal + vBlendNormalDiff ) );
-				Out.Tangent = normalize( mul( CastTo3x3( WorldMatrix ), Input.Tangent.xyz + vBlendTangentDiff ) );
-				Out.Bitangent = normalize( cross( Out.Normal, Out.Tangent ) * Input.Tangent.w );
-			#endif
-			
-				Out.WorldSpacePos.xyz = Out.Position.xyz;
-				Out.WorldSpacePos /= WorldMatrix[3][3];
-				Out.Position = FixProjectionAndMul( ViewProjectionMatrix, Out.Position );
-				
-				Out.UV0 = Input.UV0;
-			#ifdef PDX_MESH_UV1
-				Out.UV1 = Input.UV1;
-			#else
-				Out.UV1 = vec2( 0.0 );
-			#endif
-				Out.InstanceIndex = Input.InstanceIndices.y;
-				return Out;
-			}
-		]]
-	}
-
-	MainCode VS_portrait_blend_shapes_shadow
-	{
-		Input = "VS_INPUT_PDXMESHSTANDARD_ID"
-		Output = "VS_OUTPUT_PDXMESHSHADOWSTANDARD"
-		Code
-		[[
-			PDX_MAIN
-			{
-			  	VS_OUTPUT_PDXMESHSHADOWSTANDARD Out;
-				
-				float4 vPosition = float4( Input.Position.xyz, 1.0 );
-				float3 vBlendPositionDiff;
-				ProcessBlendShapesPositionOnly( vBlendPositionDiff, Input.VertexID );
-				vPosition.xyz += vBlendPositionDiff;
-				
-				float4x4 WorldMatrix = PdxMeshGetWorldMatrix( Input.InstanceIndices.y );
-			#ifdef PDX_MESH_SKINNED
-				float4 vSkinnedPosition = float4( 0, 0, 0, 0 );
-			
-				float4 vWeight = float4( Input.BoneWeight.xyz, 1.0f - Input.BoneWeight.x - Input.BoneWeight.y - Input.BoneWeight.z );
-				for( int i = 0; i < PDXMESH_MAX_INFLUENCE; ++i )
-			    {
-					int nIndex = int( Input.BoneIndex[i] );
-					float4x4 mat = BoneMatrices[nIndex + Input.InstanceIndices.x];
-					vSkinnedPosition += mul( mat, vPosition ) * vWeight[i];
-				}
-				Out.Position = mul( WorldMatrix, vSkinnedPosition );
-			#else
-				Out.Position = mul( WorldMatrix, vPosition );
-			#endif
-			
-				Out.Position = FixProjectionAndMul( ViewProjectionMatrix, Out.Position );
-				Out.UV_InstanceIndex = float3( Input.UV0, Input.InstanceIndices.y );
-				return Out;
-			}
-		]]
-	}
 	
 	MainCode VS_standard
 	{
@@ -1293,12 +1165,6 @@ PixelShader =
 	}
 }
 
-
-BlendState BlendState
-{
-	BlendEnable = no
-}
-
 BlendState hair_alpha_blend
 {
 	BlendEnable = yes
@@ -1349,210 +1215,217 @@ RasterizerState ShadowRasterizerStateBackfaces
 
 Effect portrait_skin
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_skin"
-	Defines = { "FAKE_SSS_EMISSIVE" }
+	Defines = { "FAKE_SSS_EMISSIVE" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_teeth
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_skin"
-	Defines = { "FAKE_SSS_EMISSIVE" }
+	Defines = { "FAKE_SSS_EMISSIVE" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_skin_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_teeth_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_skinShadow
 {
-	VertexShader = "VS_portrait_blend_shapes_shadow"
+	VertexShader = "VertexPdxMeshStandardShadow"
 	PixelShader = "PixelPdxMeshStandardShadow"
 	RasterizerState = "ShadowRasterizerState"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_skin_face
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_skin"
-	Defines = { "FAKE_SSS_EMISSIVE" "ENABLE_TEXTURE_OVERRIDE" }
+	Defines = { "FAKE_SSS_EMISSIVE" "ENABLE_TEXTURE_OVERRIDE" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_skin_face_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_skin_faceShadow
 {
-	VertexShader = "VS_portrait_blend_shapes_shadow"
+	VertexShader = "VertexPdxMeshStandardShadow"
 	PixelShader = "PixelPdxMeshStandardShadow"
 	RasterizerState = "ShadowRasterizerState"
-	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" }
+	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_eye
 {
 	VertexShader = "VS_standard"
 	PixelShader = "PS_eye"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_eye_selection
 {
 	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_attachment"
-	Defines = { "USE_CHARACTER_DATA" }
+	Defines = { "USE_CHARACTER_DATA" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachmentShadow
 {
-	VertexShader = "VS_portrait_blend_shapes_shadow"
+	VertexShader = "VertexPdxMeshStandardShadow"
 	PixelShader = "PixelPdxMeshStandardShadow"
 	RasterizerState = "ShadowRasterizerState"
-	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" }
+	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_pattern
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_attachment"
-	Defines = { "VARIATIONS_ENABLED" "USE_CHARACTER_DATA" }
+	Defines = { "VARIATIONS_ENABLED" "USE_CHARACTER_DATA" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_pattern_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_patternShadow
 {
-	VertexShader = "VS_portrait_blend_shapes_shadow"
+	VertexShader = "VertexPdxMeshStandardShadow"
 	PixelShader = "PixelPdxMeshStandardShadow"
 	RasterizerState = "ShadowRasterizerState"
-	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" }
+	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_pattern_alpha_to_coverage
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_attachment"
 	BlendState = "alpha_to_coverage"
-	Defines = { "VARIATIONS_ENABLED" "USE_CHARACTER_DATA" }
+	Defines = { "VARIATIONS_ENABLED" "USE_CHARACTER_DATA" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_pattern_alpha_to_coverage_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_pattern_alpha_to_coverageShadow
 {
-	VertexShader = "VS_portrait_blend_shapes_shadow"
+	VertexShader = "VertexPdxMeshStandardShadow"
 	PixelShader = "PixelPdxMeshStandardShadow"
 	RasterizerState = "ShadowRasterizerState"
-	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" }
-}
-
-Effect portrait_attachment_variedShadow
-{
-	VertexShader = "VS_portrait_blend_shapes_shadow"
-	PixelShader = "PixelPdxMeshStandardShadow"
-	RasterizerState = "ShadowRasterizerState"
+	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_alpha_to_coverage
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_attachment"
 	BlendState = "alpha_to_coverage"
-	Defines = { "USE_CHARACTER_DATA" }
+	Defines = { "USE_CHARACTER_DATA" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_alpha_to_coverage_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_alpha_to_coverageShadow
 {
-	VertexShader = "VS_portrait_blend_shapes_shadow"
+	VertexShader = "VertexPdxMeshStandardShadow"
 	PixelShader = "PixelPdxMeshStandardShadow"
 	RasterizerState = "ShadowRasterizerState"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_hair"
 	BlendState = "alpha_to_coverage"
 	RasterizerState = "rasterizer_no_culling"
-	Defines = { "ALPHA_TO_COVERAGE" }
+	Defines = { "ALPHA_TO_COVERAGE" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
 	RasterizerState = "rasterizer_no_culling"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair_transparency_hack
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_hair"
 	BlendState = "alpha_to_coverage"
 	RasterizerState = "rasterizer_no_culling"
-	Defines = { "HAIR_TRANSPARENCY_HACK" }
+	Defines = { "HAIR_TRANSPARENCY_HACK" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair_transparency_hack_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_hair"
 	BlendState = "alpha_to_coverage"
 	RasterizerState = "rasterizer_no_culling"
-	Defines = { "HAIR_TRANSPARENCY_HACK" }
+	Defines = { "HAIR_TRANSPARENCY_HACK" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair_double_sided
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_hair_double_sided"
 	BlendState = "alpha_to_coverage"
 	#DepthStencilState = "test_and_write"
 	RasterizerState = "rasterizer_no_culling"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair_double_sided_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
 	RasterizerState = "rasterizer_no_culling"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair_alpha
@@ -1561,19 +1434,22 @@ Effect portrait_hair_alpha
 	PixelShader = "PS_hair"
 	BlendState = "hair_alpha_blend"
 	DepthStencilState = "hair_alpha_blend"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair_alpha_selection
 {
 	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair_double_sided_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
 	RasterizerState = "rasterizer_no_culling"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair_opaque
@@ -1581,13 +1457,14 @@ Effect portrait_hair_opaque
 	VertexShader = "VS_standard"
 	PixelShader = "PS_hair"
 	
-	Defines = { "WRITE_ALPHA_ONE" }
+	Defines = { "WRITE_ALPHA_ONE" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair_opaque_selection
 {
 	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_alpha
@@ -1596,14 +1473,15 @@ Effect portrait_attachment_alpha
 	PixelShader = "PS_attachment"
 	BlendState = "hair_alpha_blend"
 	DepthStencilState = "hair_alpha_blend"
-	Defines = { "USE_CHARACTER_DATA" }
+	Defines = { "USE_CHARACTER_DATA" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_alphaShadow
 {
-	VertexShader = "VS_portrait_blend_shapes_shadow"
+	VertexShader = "VertexPdxMeshStandardShadow"
 	PixelShader = "PixelPdxMeshStandardShadow"
 	RasterizerState = "ShadowRasterizerState"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair_backside
@@ -1611,6 +1489,7 @@ Effect portrait_hair_backside
 	VertexShader = "VS_standard"
 	PixelShader = "PS_portrait_hair_backface"
 	RasterizerState = "rasterizer_backfaces"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_hair_backside_selection
@@ -1618,6 +1497,7 @@ Effect portrait_hair_backside_selection
 	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection_backfacing"
 	RasterizerState = "rasterizer_backfaces"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect court
@@ -1742,66 +1622,70 @@ Effect court_usercolor_coa_selection
 
 Effect portrait_artifact_pattern
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_attachment"
-	Defines = { "VARIATIONS_ENABLED" }
+	Defines = { "VARIATIONS_ENABLED" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_artifact_pattern_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_artifact_patternShadow
 {
-	VertexShader = "VS_portrait_blend_shapes_shadow"
+	VertexShader = "VertexPdxMeshStandardShadow"
 	PixelShader = "PixelPdxMeshStandardShadow"
 	RasterizerState = "ShadowRasterizerState"
-	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" }
+	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_artifact_alpha_to_coverage
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_attachment"
 	BlendState = "alpha_to_coverage"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_artifact_alpha_to_coverage_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_artifact_alpha_to_coverageShadow
 {
-	VertexShader = "VS_portrait_blend_shapes_shadow"
+	VertexShader = "VertexPdxMeshStandardShadow"
 	PixelShader = "PixelPdxMeshStandardShadow"
 	RasterizerState = "ShadowRasterizerState"
-	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" }
+	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_artifact_pattern_alpha_to_coverage
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_attachment"
 	BlendState = "alpha_to_coverage"
-	Defines = { "VARIATIONS_ENABLED" }
+	Defines = { "VARIATIONS_ENABLED" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_artifact_pattern_alpha_to_coverage_selection
 {
-	VertexShader = "VS_portrait_blend_shapes"
+	VertexShader = "VS_standard"
 	PixelShader = "PS_court_selection"
+	Defines = { "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_artifact_pattern_alpha_to_coverageShadow
 {
-	VertexShader = "VS_portrait_blend_shapes_shadow"
+	VertexShader = "VertexPdxMeshStandardShadow"
 	PixelShader = "PixelPdxMeshStandardShadow"
 	RasterizerState = "ShadowRasterizerState"
-	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" }
+	Defines = { "PDXMESH_DISABLE_DITHERED_OPACITY" "PDX_MESH_BLENDSHAPES" }
 }
 
 # Effects from pdx_mesh.shader

@@ -102,6 +102,33 @@ PixelShader =
 			}
 		]]
 	}
+
+	MainCode PixelShaderStruggle
+	{
+		Input = "VS_OUTPUT_PDX_BORDER"
+		Output = "PDX_COLOR"
+		Code
+		[[
+			PDX_MAIN
+			{
+				float4 Diffuse = PdxTex2D( BorderTexture, Input.UV );
+
+				// _UserId is 1 if struggle is highlighted and 0 if not
+				float Highlight = float( _UserId );
+
+				float lowColorMult = 0.3f;
+				float colorMult = lowColorMult + ( ( 1.0f - lowColorMult ) * Highlight );
+
+				Diffuse.rgb = saturate( Diffuse.rgb * colorMult );
+
+				Diffuse.rgb = ApplyFogOfWar( Diffuse.rgb, Input.WorldSpacePos, FogOfWarAlpha );
+				Diffuse.rgb = ApplyDistanceFog( Diffuse.rgb, Input.WorldSpacePos );
+				Diffuse.a *= _Alpha;
+
+				return Diffuse;
+			}
+		]]
+	}
 }
 
 BlendState BlendState
@@ -144,4 +171,10 @@ Effect PdxBorderWar
 {
 	VertexShader = "VertexShader"
 	PixelShader = "PixelShaderWar"
+}
+
+Effect PdxBorderStruggle
+{
+	VertexShader = "VertexShader"
+	PixelShader = "PixelShaderStruggle"
 }
