@@ -42,7 +42,8 @@ PixelShader =
 				float4 Water = CalcWater( Input, Depth );
 
 				#ifdef WATER_COLOR_OVERLAY
-					#ifdef PDX_OSX // Not enough texture slots, so use only secondary colors on water.
+					// Not enough texture slots, so use only secondary colors on water.
+					#if defined( PDX_OSX ) && defined( PDX_OPENGL )
 						ApplySecondaryColorGame( Water.rgb, float2( Input.UV01.x, 1.0f - Input.UV01.y ) );
 					#else
 						float3 BorderColor;
