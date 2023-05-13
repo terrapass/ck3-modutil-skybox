@@ -8,10 +8,12 @@ Includes = {
 	"jomini/jomini_lighting.fxh"
 	"jomini/jomini_fog.fxh"
 	"jomini/portrait_accessory_variation.fxh"
+	"jomini/portrait_coa.fxh"
 	"jomini/portrait_decals.fxh"
 	"jomini/portrait_user_data.fxh"
 	"constants.fxh"
 	"standardfuncsgfx.fxh"
+	"parallax.fxh"
 }
 
 PixelShader =
@@ -52,6 +54,17 @@ PixelShader =
 		SampleModeU = "Wrap"
 		SampleModeV = "Wrap"
 	}
+#ifdef PARALLAX
+	TextureSampler ParallaxMap
+	{
+		Index = 4
+		MagFilter = "Linear"
+		MinFilter = "Linear"
+		MipFilter = "Linear"
+		SampleModeU = "Wrap"
+		SampleModeV = "Wrap"
+	}
+#endif
 	TextureSampler EnvironmentMap
 	{
 		Ref = JominiEnvironmentMap
@@ -88,6 +101,15 @@ PixelShader =
 		MipFilter = "Linear"
 		SampleModeU = "Wrap"
 		SampleModeV = "Wrap"
+	}
+	TextureSampler CoaTexture 
+	{
+		Index = 12
+		MagFilter = "Linear"
+		MinFilter = "Linear"
+		MipFilter = "Linear"
+		SampleModeU = "Clamp"
+		SampleModeV = "Clamp"
 	}
 	TextureSampler ShadowTexture
 	{
@@ -165,6 +187,11 @@ ConstantBuffer( 5 )
 	float HasNormalMapOverride;
 	float HasPropertiesMapOverride;
 	float HoverMult;
+	
+	float4		CoaColor1;
+	float4		CoaColor2;
+	float4		CoaColor3;
+	float4		CoaOffsetAndScale;
 };
 
 # CCourtSceneShadowMap::MaxShadows in cpp code controls shadow array sizes
@@ -884,6 +911,10 @@ PixelShader =
 					ApplyVariationPatterns( Input, Diffuse, Properties, NormalSample );
 				#endif
 
+				#ifdef COA_ENABLED
+					ApplyCoa( Input, Diffuse, CoaColor1, CoaColor2, CoaColor3, CoaOffsetAndScale.xy, CoaOffsetAndScale.zw, CoaTexture, Properties.r );
+				#endif
+
 				#ifdef USE_CHARACTER_DATA
 				float AppliedHover = HoverMult;
 				#else
@@ -1052,6 +1083,15 @@ PixelShader =
 			PDX_MAIN
 			{
 				PS_COLOR_SSAO Out;
+
+				#ifdef PARALLAX
+					#ifdef LOW_SPEC_SHADERS
+						Input.UV0 = ParallaxMappingLowSpec( ParallaxMap, Input.UV0, Input.Tangent, Input.Bitangent, Input.Normal, Input.WorldSpacePos, CameraPosition );
+					#else
+						Input.UV0 = ParallaxMapping( ParallaxMap, Input.UV0, Input.Tangent, Input.Bitangent, Input.Normal, Input.WorldSpacePos, CameraPosition );
+					#endif
+				#endif
+
 
 				#if defined( COA ) || defined( USER_COLOR )
 					static const int USER_DATA_PRIMARY_COLOR = 0;
@@ -1380,13 +1420,29 @@ Effect portrait_attachment_with_coa
 {
 	VertexShader = "VS_standard"
 	PixelShader = "PS_attachment"
-	Defines = { "COA_ENABLED" "PDX_MESH_BLENDSHAPES" }
+	Defines = {"USE_CHARACTER_DATA" "COA_ENABLED" "PDX_MESH_BLENDSHAPES" }
+}
+
+Effect portrait_attachment_alpha_to_coverage_with_coa
+{
+	VertexShader = "VS_standard"
+	PixelShader = "PS_attachment"
+	BlendState = "alpha_to_coverage"
+	Defines = {"USE_CHARACTER_DATA" "COA_ENABLED" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_with_coa_selection
 {
 	VertexShader = "VS_standard"
-	PixelShader = "PS_attachment"
+	PixelShader = "PS_court_selection"
+	Defines = { "COA_ENABLED" "PDX_MESH_BLENDSHAPES" }
+}
+
+Effect portrait_attachment_alpha_to_coverage_with_coa_selection
+{
+	VertexShader = "VS_standard"
+	PixelShader = "PS_court_selection"
+	BlendState = "alpha_to_coverage"
 	Defines = { "COA_ENABLED" "PDX_MESH_BLENDSHAPES" }
 }
 
@@ -1402,13 +1458,29 @@ Effect portrait_attachment_with_coa_and_variations
 {
 	VertexShader = "VS_standard"
 	PixelShader = "PS_attachment"
-	Defines = { "COA_ENABLED" "VARIATIONS_ENABLED" "PDX_MESH_BLENDSHAPES" }
+	Defines = { "USE_CHARACTER_DATA" "COA_ENABLED" "VARIATIONS_ENABLED" "PDX_MESH_BLENDSHAPES" }
+}
+
+Effect portrait_attachment_alpha_to_coverage_with_coa_and_variations
+{
+	VertexShader = "VS_standard"
+	PixelShader = "PS_attachment"
+	BlendState = "alpha_to_coverage"
+	Defines = {"USE_CHARACTER_DATA" "COA_ENABLED" "VARIATIONS_ENABLED" "PDX_MESH_BLENDSHAPES" }
 }
 
 Effect portrait_attachment_with_coa_and_variations_selection
 {
 	VertexShader = "VS_standard"
-	PixelShader = "PS_attachment"
+	PixelShader = "PS_court_selection"
+	Defines = { "COA_ENABLED" "VARIATIONS_ENABLED" "PDX_MESH_BLENDSHAPES" }
+}
+
+Effect portrait_attachment_alpha_to_coverage_with_coa_and_variations_selection
+{
+	VertexShader = "VS_standard"
+	PixelShader = "PS_court_selection"
+	BlendState = "alpha_to_coverage"
 	Defines = { "COA_ENABLED" "VARIATIONS_ENABLED" "PDX_MESH_BLENDSHAPES" }
 }
 
@@ -1953,6 +2025,18 @@ Effect material_test
 }
 
 Effect selection_marker
+{
+	VertexShader = "VS_standard"
+	PixelShader = "PS_noop"
+}
+
+Effect travel_arrow_marker
+{
+	VertexShader = "VS_standard"
+	PixelShader = "PS_noop"
+}
+
+Effect travel_arrow_marker_selection
 {
 	VertexShader = "VS_standard"
 	PixelShader = "PS_noop"
