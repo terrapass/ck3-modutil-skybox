@@ -3,6 +3,9 @@ Includes = {
 	"jomini/jomini_flat_border.fxh"
 	"jomini/jomini_fog.fxh"
 	"jomini/jomini_fog_of_war.fxh"
+	# MOD(map-skybox)
+	"gh_camera_utils.fxh"
+	# END MOD
 	"standardfuncsgfx.fxh"
 }
 
@@ -71,11 +74,15 @@ PixelShader =
 			PDX_MAIN
 			{
 				float4 Diffuse = PdxTex2D( BorderTexture, Input.UV );
-				
+
 				Diffuse.rgb = ApplyFogOfWar( Diffuse.rgb, Input.WorldSpacePos, FogOfWarAlpha );
 				Diffuse.rgb = ApplyDistanceFog( Diffuse.rgb, Input.WorldSpacePos );
 				Diffuse.a *= _Alpha;
-				
+
+				// MOD(map-skybox)
+				Diffuse.a *= GH_GetDefaultCameraPitchAlphaMultiplier();
+				// END MOD
+
 				return Diffuse;
 			}
 		]]
@@ -90,13 +97,17 @@ PixelShader =
 			PDX_MAIN
 			{
 				float4 Diffuse = PdxTex2D( BorderTexture, Input.UV );
-				
+
 				float vPulseFactor = saturate( smoothstep( 0.0f, 1.0f, 0.4f + sin( GlobalTime * 2.5f ) * 0.25f ) );
 				Diffuse.rgb = saturate( Diffuse.rgb * vPulseFactor );
 				
 				Diffuse.rgb = ApplyFogOfWar( Diffuse.rgb, Input.WorldSpacePos, FogOfWarAlpha );
 				Diffuse.rgb = ApplyDistanceFog( Diffuse.rgb, Input.WorldSpacePos );
 				Diffuse.a *= _Alpha;
+
+				// MOD(map-skybox)
+				Diffuse.a *= GH_GetDefaultCameraPitchAlphaMultiplier();
+				// END MOD
 				
 				return Diffuse;
 			}
@@ -125,6 +136,10 @@ PixelShader =
 				Diffuse.rgb = ApplyDistanceFog( Diffuse.rgb, Input.WorldSpacePos );
 				Diffuse.a *= _Alpha;
 
+				// MOD(map-skybox)
+				Diffuse.a *= GH_GetDefaultCameraPitchAlphaMultiplier();
+				// END MOD
+
 				return Diffuse;
 			}
 		]]
@@ -141,25 +156,18 @@ BlendState BlendState
 
 RasterizerState RasterizerState
 {
-	# MOD(map-skybox)
-	DepthBias = -20000
-	SlopeScaleDepthBias = 0
-	# END MOD
+	#DepthBias = -50
+	DepthBias = -10000
+	SlopeScaleDepthBias = -2
 }
 
 DepthStencilState DepthStencilState
 {
-	# MOD(map-skybox)
-	DepthEnable = yes
-	DepthWriteEnable = no
-	# END MOD
+	DepthEnable = no
 	StencilEnable = yes
-	# MOD(map-skybox)
-	FrontStencilFunc = greater_equal
-	# END MOD
+	FrontStencilFunc = not_equal
 	StencilRef = 1
 }
-
 
 Effect PdxBorder
 {

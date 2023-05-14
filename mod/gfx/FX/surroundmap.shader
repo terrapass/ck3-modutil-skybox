@@ -5,6 +5,9 @@ Includes = {
 	"jomini/jomini_fog.fxh"
 	"jomini/jomini_lighting.fxh"
 	"lowspec.fxh"
+	# MOD(map-skybox)
+	"gh_camera_utils.fxh"
+	# END MOD
 }
 
 
@@ -213,6 +216,10 @@ PixelShader =
 			
 			return Offset * ParallaxScale;
 		}
+
+		// MOD(map-skybox)
+		static const float GH_SURROUNDMAP_ALPHA_MULTIPLIER_EPSILON = 0.001f;
+		// END MOD
 	]]
 
 	MainCode PS_surroundmap
@@ -223,6 +230,12 @@ PixelShader =
 		[[
 			PDX_MAIN
 			{
+				// MOD(map-skybox)
+				float GH_AlphaMultiplier = GH_GetDefaultCameraPitchAlphaMultiplier();
+				if (GH_AlphaMultiplier < GH_SURROUNDMAP_ALPHA_MULTIPLIER_EPSILON)
+					return float4(0.0f, 0.0f, 0.0f, 0.0f);
+				// END MOD
+
 				float2 UV = Input.uv;
 
 				float3 SurroundMaskChannels = PdxTex2D( SurroundMask, UV ).rgb;
@@ -271,7 +284,11 @@ PixelShader =
 				BlackUV += float2( 0.125, 0.125);
 				float3 Black = PdxTex2D( BlackMask, BlackUV ).rgb;
 				Color *= vec3( Black.g * ( 1 - FlatMapLerp ) );
-				
+
+				// MOD(map-skybox)
+				FinalAlpha *= GH_AlphaMultiplier;
+				// END MOD
+
 				return float4( Color, saturate( FinalAlpha ) );
 			}
 		]]
@@ -285,6 +302,12 @@ PixelShader =
 		[[
 			PDX_MAIN
 			{
+				// MOD(map-skybox)
+				float GH_AlphaMultiplier = GH_GetDefaultCameraPitchAlphaMultiplier();
+				if (GH_AlphaMultiplier < GH_SURROUNDMAP_ALPHA_MULTIPLIER_EPSILON)
+					return float4(0.0f, 0.0f, 0.0f, 0.0f);
+				// END MOD
+
 				float2 UV = Input.uv;
 				
 				float3 SurroundMaskChannels = PdxTex2D( SurroundMask, UV ).rgb;
@@ -334,7 +357,11 @@ PixelShader =
 				BlackUV += float2( 0.125, 0.125);
 				float3 Black = PdxTex2D( BlackMask, BlackUV ).rgb;
 				Color *= vec3( Black.g * ( 1 - FlatMapLerp ) );
-				
+
+				// MOD(map-skybox)
+				FinalAlpha *= GH_AlphaMultiplier;
+				// END MOD
+
 				return float4( Color, saturate( FinalAlpha ) );
 			}
 		]]
@@ -348,10 +375,19 @@ PixelShader =
 		[[			
 			PDX_MAIN
 			{
+				// MOD(map-skybox)
+				float GH_AlphaMultiplier = GH_GetDefaultCameraPitchAlphaMultiplier();
+				if (GH_AlphaMultiplier < GH_SURROUNDMAP_ALPHA_MULTIPLIER_EPSILON)
+					return float4(0.0f, 0.0f, 0.0f, 0.0f);
+				// END MOD
+
 				float2 UV = Input.uv;
 				float Mask = PdxTex2D( SurroundMask, UV ).r;
 			
-				return float4( ShadowColor, Mask * ( 1.0 - FlatMapLerp ) );
+				// MOD(map-skybox)
+				//return float4( ShadowColor, Mask * ( 1.0 - FlatMapLerp ) );
+				return float4( ShadowColor, Mask * ( 1.0 - FlatMapLerp ) * GH_AlphaMultiplier);
+				// END MOD
 			}
 		]]
 	}
@@ -384,27 +420,18 @@ BlendState BlendState
 	BlendEnable = yes
 	SourceBlend = "src_alpha"
 	DestBlend = "inv_src_alpha"
-	# MOD(map-skybox)
-	BlendOp = "REV_SUBTRACT"
-	# END MOD
 	WriteMask = "RED|GREEN|BLUE"
 }
 
 DepthStencilState DepthStencilState
 {
-	# MOD(map-skybox)
-	DepthEnable = yes
-	# END MOD
+	DepthEnable = no
 	DepthWriteEnable = no
 }
 
 RasterizerState RasterizerState
 {
 	frontccw = yes
-	# MOD(map-skybox)
-	DepthBias = -20000
-	SlopeScaleDepthBias = 50
-	# END MOD
 }
 
 
