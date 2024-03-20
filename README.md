@@ -10,7 +10,7 @@ This repository contains CK3 mod files which implement sky rendering on the map.
 You can integrate this feature into your own mod by copying the files into your mod's file structure and making adjustments if necessary (see [Integrating into Your Mod](#integration)).
 Alternatively, you can load the contents of this repo as a separate mod in your playset, which might be useful if you just want to take several beauty shots of the map, `mod/descriptor.mod` is provided for this purpose.
 
-**The code has been updated to be compatible with CK3 version 1.9.0 (Lance).**
+**The code has been updated to be compatible with CK3 version 1.12 (Scythe).**
 
 Table of Contents
 -----------------
